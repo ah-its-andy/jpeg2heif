@@ -2,22 +2,21 @@ version: '3.8'
 
 services:
   jpeg2heic:
-    build: .
-    container_name: jpeg2heic-converter
+    image: standardcore/jpeg2heic
+    container_name: standardcore/jpeg2heic
     ports:
       - "8000:8000"
     volumes:
       # Mount your image directories here
       # Format: - /host/path:/container/path
-      - ./data/images:/data/images
-      - ./data/output:/data/output
+      - /share/安迪的库/安迪的图库/Picture/2025/jpg:/data/images/安迪的图库
       # Persist database
-      - ./data/db:/data
+      - /share/ssd1/jpeg2heic/data:/data
     environment:
       # Operating mode: 'once' for single scan, 'watch' for continuous monitoring
       - MODE=watch
       # Comma-separated list of directories to monitor (use container paths)
-      - WATCH_DIRS=/data/images,/data/output
+      - WATCH_DIRS=/data/images
       # Database path
       - DB_PATH=/data/tasks.db
       # Log level: DEBUG, INFO, WARNING, ERROR
