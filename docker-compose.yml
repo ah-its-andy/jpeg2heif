@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  jpeg2heic:
+    build: .
+    container_name: jpeg2heic-converter
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount your image directories here
+      # Format: - /host/path:/container/path
+      - ./data/images:/data/images
+      - ./data/output:/data/output
+      # Persist database
+      - ./data/db:/data
+    environment:
+      # Operating mode: 'once' for single scan, 'watch' for continuous monitoring
+      - MODE=watch
+      # Comma-separated list of directories to monitor (use container paths)
+      - WATCH_DIRS=/data/images,/data/output
+      # Database path
+      - DB_PATH=/data/tasks.db
+      # Log level: DEBUG, INFO, WARNING, ERROR
+      - LOG_LEVEL=INFO
+      # HEIC encoding quality (0-100)
+      - CONVERT_QUALITY=90
+      # Number of concurrent conversion workers
+      - MAX_WORKERS=4
+      # Preserve EXIF metadata
+      - PRESERVE_METADATA=true
+      # Watch mode stability delay (seconds)
+      - METADATA_STABILITY_DELAY=1
+      # Poll interval (seconds)
+      - POLL_INTERVAL=1
+      # HTTP port
+      - HTTP_PORT=8000
+    restart: unless-stopped
+    # Optional: Set resource limits
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '2'
+    #       memory: 2G
