@@ -38,7 +38,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}
+          images: ${{ secrets.DOCKER_HUB_USERNAME }}/jpeg2heic
           tags: |
             # Tag as 'latest' on main branch
             type=raw,value=latest,enable={{is_default_branch}}
