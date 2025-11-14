@@ -4,7 +4,6 @@
 .github/
 
 # Build artifacts
-jpeg2heif
 *.exe
 *.dll
 *.so

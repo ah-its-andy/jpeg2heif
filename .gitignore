@@ -1,9 +1,10 @@
 # Binaries
-jpeg2heif
 *.exe
 *.dll
 *.so
 *.dylib
+./jpeg2heif
+bin/jpeg2heif
 
 # Test binary
 *.test
