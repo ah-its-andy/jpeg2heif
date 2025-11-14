@@ -6,15 +6,15 @@ WORKDIR /build
 # Copy go mod files
 COPY go.mod go.sum ./
 
-RUN mkdir -p /build/cmd/ && go mod download
+RUN mkdir -p /build/cmd/jpeg2heif && go mod download
 
 # Copy source code
 COPY . .
 
 # Build with CGO disabled for pure Go binary
-RUN go mod download && \
+RUN mkdir -p /build/cmd/jpeg2heif && go mod download && \
     go mod verify && \
-    CGO_ENABLED=0 GOOS=linux go build -o jpeg2heif ./cmd/jpeg2heif
+    CGO_ENABLED=0 GOOS=linux go build -o jpeg2heif /build/cmd/jpeg2heif
 
 # Runtime stage
 FROM debian:bookworm-slim
