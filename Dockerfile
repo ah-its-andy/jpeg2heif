@@ -18,7 +18,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 COPY --from=build /out/jpeg2heif /usr/local/bin/jpeg2heif
 COPY static ./static
-COPY .env.example /app/.env.example
 
 # runtime data dir
 VOLUME ["/data"]
