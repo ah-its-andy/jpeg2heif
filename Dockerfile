@@ -1,60 +1,37 @@
-# Use Python 3.11 on Debian base
-FROM python:3.11-slim-bookworm
+# Build stage
+FROM golang:1.22-bookworm AS build
+WORKDIR /app
+COPY go.mod .
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o /out/jpeg2heif ./cmd/worker
 
-# Install system dependencies for HEIF/HEIC support
-# libheif: HEIF/HEIC format support
-# libde265: H.265/HEVC decoder for HEIF
-# libx265: H.265 encoder
-# libexif: EXIF metadata handling
-RUN apt-get update && apt-get install -y \
-    libheif1 \
-    libheif-dev \
-    libde265-0 \
-    libde265-dev \
-    libx265-199 \
-    libx265-dev \
-    libexif12 \
-    libexif-dev \
-    libjpeg62-turbo \
-    libjpeg62-turbo-dev \
-    build-essential \
-    pkg-config \
+# Runtime stage
+FROM debian:bookworm-slim
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    imagemagick exiftool libheif-examples libheif1 ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
+# enable HEIC in ImageMagick by ensuring delegates present; bookworm ships HEIF support via libheif
+
 WORKDIR /app
+COPY --from=build /out/jpeg2heif /usr/local/bin/jpeg2heif
+COPY static ./static
+COPY .env.example /app/.env.example
 
-# Copy requirements first for better caching
-COPY requirements.txt .
+# runtime data dir
+VOLUME ["/data"]
+ENV WATCH_DIRS=/data/images \
+    DB_PATH=/data/tasks.db \
+    LOG_LEVEL=INFO \
+    POLL_INTERVAL=1 \
+    MAX_WORKERS=4 \
+    CONVERT_QUALITY=90 \
+    HTTP_PORT=8000 \
+    PRESERVE_METADATA=true \
+    METADATA_STABILITY_DELAY=1 \
+    MD5_CHUNK_SIZE=4194304
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy application code
-COPY app/ ./app/
-COPY static/ ./static/
-
-# Create data directory for database and ensure permissions
-RUN mkdir -p /data && chmod 777 /data
-
-# Expose HTTP port
 EXPOSE 8000
-
-# Set environment variables defaults (can be overridden)
-ENV MODE=once
-ENV WATCH_DIRS=/data/images
-ENV DB_PATH=/data/tasks.db
-ENV LOG_LEVEL=INFO
-ENV HTTP_PORT=8000
-ENV PRESERVE_METADATA=true
-ENV CONVERT_QUALITY=90
-ENV MAX_WORKERS=4
-ENV POLL_INTERVAL=1
-ENV METADATA_STABILITY_DELAY=1
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
-
-# Run application
-CMD ["python", "-m", "app.main"]
+ENTRYPOINT ["/usr/local/bin/jpeg2heif"]

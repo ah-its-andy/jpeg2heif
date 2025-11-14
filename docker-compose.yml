@@ -1,42 +1,22 @@
-version: '3.8'
-
+version: "3.8"
 services:
-  jpeg2heic:
-    image: standardcore/jpeg2heic
-    container_name: standardcore/jpeg2heic
+  jpeg2heif:
+    build: .
+    image: jpeg2heif:local
+    container_name: jpeg2heif
+    environment:
+      - WATCH_DIRS=/data/images
+      - DB_PATH=/data/tasks.db
+      - LOG_LEVEL=INFO
+      - POLL_INTERVAL=1
+      - MAX_WORKERS=4
+      - CONVERT_QUALITY=90
+      - HTTP_PORT=8000
+      - PRESERVE_METADATA=true
+      - METADATA_STABILITY_DELAY=1
+      - MD5_CHUNK_SIZE=4194304
+    volumes:
+      - ./sample-data:/data/images:rw
+      - ./data:/data:rw
     ports:
       - "8000:8000"
-    volumes:
-      # Mount your image directories here
-      # Format: - /host/path:/container/path
-      - /share/安迪的库/安迪的图库/Picture/2025/jpg:/data/images/安迪的图库
-      # Persist database
-      - /share/ssd1/jpeg2heic/data:/data
-    environment:
-      # Operating mode: 'once' for single scan, 'watch' for continuous monitoring
-      - MODE=watch
-      # Comma-separated list of directories to monitor (use container paths)
-      - WATCH_DIRS=/data/images
-      # Database path
-      - DB_PATH=/data/tasks.db
-      # Log level: DEBUG, INFO, WARNING, ERROR
-      - LOG_LEVEL=INFO
-      # HEIC encoding quality (0-100)
-      - CONVERT_QUALITY=90
-      # Number of concurrent conversion workers
-      - MAX_WORKERS=4
-      # Preserve EXIF metadata
-      - PRESERVE_METADATA=true
-      # Watch mode stability delay (seconds)
-      - METADATA_STABILITY_DELAY=1
-      # Poll interval (seconds)
-      - POLL_INTERVAL=1
-      # HTTP port
-      - HTTP_PORT=8000
-    restart: unless-stopped
-    # Optional: Set resource limits
-    # deploy:
-    #   resources:
-    #     limits:
-    #       cpus: '2'
-    #       memory: 2G
