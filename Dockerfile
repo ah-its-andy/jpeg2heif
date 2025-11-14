@@ -13,7 +13,7 @@ COPY . .
 # Build with CGO disabled for pure Go binary
 RUN go mod download && \
     go mod verify && \
-    CGO_ENABLED=0 GOOS=linux go build -v -a -installsuffix cgo -ldflags '-extldflags "-static"' -o jpeg2heif ./cmd/jpeg2heif
+    CGO_ENABLED=0 GOOS=linux go build -o jpeg2heif ./cmd/jpeg2heif
 
 # Runtime stage
 FROM debian:bookworm-slim
