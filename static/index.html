@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JPEG2HEIF Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .stat-card h3 {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .stat-card.success .value { color: #27ae60; }
+        .stat-card.failed .value { color: #e74c3c; }
+        .stat-card.pending .value { color: #f39c12; }
+        .stat-card.processing .value { color: #3498db; }
+        
+        .section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        h2 {
+            color: #2c3e50;
+            font-size: 20px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #2980b9;
+        }
+        
+        button.secondary {
+            background: #95a5a6;
+        }
+        
+        button.secondary:hover {
+            background: #7f8c8d;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            background: #ecf0f1;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-processing {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .filters {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .converter-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        
+        .converter-card {
+            padding: 15px;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+        }
+        
+        .converter-card.enabled {
+            border-color: #27ae60;
+            background: #f0fff4;
+        }
+        
+        .converter-card h4 {
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+        
+        .converter-card p {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+        
+        .truncate {
+            max-width: 400px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎨 JPEG2HEIF Dashboard</h1>
+            <p>Media file conversion monitoring and management</p>
+        </header>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Total Files</h3>
+                <div class="value" id="stat-total">0</div>
+            </div>
+            <div class="stat-card success">
+                <h3>Successful</h3>
+                <div class="value" id="stat-success">0</div>
+            </div>
+            <div class="stat-card failed">
+                <h3>Failed</h3>
+                <div class="value" id="stat-failed">0</div>
+            </div>
+            <div class="stat-card pending">
+                <h3>Pending</h3>
+                <div class="value" id="stat-pending">0</div>
+            </div>
+            <div class="stat-card processing">
+                <h3>Processing</h3>
+                <div class="value" id="stat-processing">0</div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-header">
+                <h2>Registered Converters</h2>
+            </div>
+            <div class="converter-list" id="converter-list">
+                <div class="loading">Loading converters...</div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-header">
+                <h2>File Index</h2>
+                <div class="controls">
+                    <button onclick="triggerScan()">🔍 Scan Now</button>
+                    <button onclick="rebuildIndex()" class="secondary">🔄 Rebuild Index</button>
+                </div>
+            </div>
+            
+            <div class="filters">
+                <label for="status-filter">Filter by status:</label>
+                <select id="status-filter" onchange="loadFiles()">
+                    <option value="">All</option>
+                    <option value="success">Success</option>
+                    <option value="failed">Failed</option>
+                    <option value="pending">Pending</option>
+                    <option value="processing">Processing</option>
+                </select>
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>File Path</th>
+                        <th>Status</th>
+                        <th>Converter</th>
+                        <th>Metadata</th>
+                        <th>Updated</th>
+                    </tr>
+                </thead>
+                <tbody id="files-table">
+                    <tr><td colspan="5" class="loading">Loading files...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="section">
+            <div class="section-header">
+                <h2>Recent Tasks</h2>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>File Path</th>
+                        <th>Converter</th>
+                        <th>Status</th>
+                        <th>Duration</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody id="tasks-table">
+                    <tr><td colspan="5" class="loading">Loading tasks...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        // Load stats
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const stats = await response.json();
+                
+                document.getElementById('stat-total').textContent = stats.total_files || 0;
+                document.getElementById('stat-success').textContent = stats.success_count || 0;
+                document.getElementById('stat-failed').textContent = stats.failed_count || 0;
+                document.getElementById('stat-pending').textContent = stats.pending_count || 0;
+                document.getElementById('stat-processing').textContent = stats.processing_count || 0;
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+        
+        // Load converters
+        async function loadConverters() {
+            try {
+                const response = await fetch('/api/converters');
+                const converters = await response.json();
+                
+                const list = document.getElementById('converter-list');
+                if (converters && converters.length > 0) {
+                    list.innerHTML = converters.map(conv => `
+                        <div class="converter-card ${conv.enabled ? 'enabled' : ''}">
+                            <h4>${conv.name}</h4>
+                            <p>Target: ${conv.target_format}</p>
+                            <p>Status: ${conv.enabled ? '✅ Enabled' : '❌ Disabled'}</p>
+                        </div>
+                    `).join('');
+                } else {
+                    list.innerHTML = '<p>No converters registered</p>';
+                }
+            } catch (error) {
+                console.error('Failed to load converters:', error);
+                document.getElementById('converter-list').innerHTML = '<p>Failed to load converters</p>';
+            }
+        }
+        
+        // Load files
+        async function loadFiles() {
+            try {
+                const status = document.getElementById('status-filter').value;
+                const url = `/api/files?limit=100${status ? '&status=' + status : ''}`;
+                const response = await fetch(url);
+                const files = await response.json();
+                
+                const tbody = document.getElementById('files-table');
+                if (files && files.length > 0) {
+                    tbody.innerHTML = files.map(file => `
+                        <tr>
+                            <td class="truncate" title="${file.file_path}">${file.file_path}</td>
+                            <td><span class="status-badge status-${file.status}">${file.status}</span></td>
+                            <td>${file.converter_name || '-'}</td>
+                            <td>${file.metadata_preserved ? '✅' : '❌'}</td>
+                            <td>${new Date(file.updated_at).toLocaleString()}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No files found</td></tr>';
+                }
+            } catch (error) {
+                console.error('Failed to load files:', error);
+                document.getElementById('files-table').innerHTML = '<tr><td colspan="5">Failed to load files</td></tr>';
+            }
+        }
+        
+        // Load tasks
+        async function loadTasks() {
+            try {
+                const response = await fetch('/api/tasks?limit=50');
+                const tasks = await response.json();
+                
+                const tbody = document.getElementById('tasks-table');
+                if (tasks && tasks.length > 0) {
+                    tbody.innerHTML = tasks.map(task => `
+                        <tr>
+                            <td class="truncate" title="${task.file_path}">${task.file_path}</td>
+                            <td>${task.converter_name || '-'}</td>
+                            <td><span class="status-badge status-${task.status}">${task.status}</span></td>
+                            <td>${task.duration_ms}ms</td>
+                            <td>${new Date(task.created_at).toLocaleString()}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No tasks found</td></tr>';
+                }
+            } catch (error) {
+                console.error('Failed to load tasks:', error);
+                document.getElementById('tasks-table').innerHTML = '<tr><td colspan="5">Failed to load tasks</td></tr>';
+            }
+        }
+        
+        // Trigger scan
+        async function triggerScan() {
+            try {
+                await fetch('/api/scan-now', { method: 'POST' });
+                alert('Scan triggered successfully');
+                setTimeout(() => {
+                    loadStats();
+                    loadFiles();
+                }, 2000);
+            } catch (error) {
+                console.error('Failed to trigger scan:', error);
+                alert('Failed to trigger scan');
+            }
+        }
+        
+        // Rebuild index
+        async function rebuildIndex() {
+            if (!confirm('Are you sure you want to rebuild the entire index? This may take a while.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/rebuild-index', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const result = await response.json();
+                alert(`Rebuild started with job ID: ${result.job_id}`);
+            } catch (error) {
+                console.error('Failed to rebuild index:', error);
+                alert('Failed to rebuild index');
+            }
+        }
+        
+        // Initial load
+        loadStats();
+        loadConverters();
+        loadFiles();
+        loadTasks();
+        
+        // Auto-refresh every 10 seconds
+        setInterval(() => {
+            loadStats();
+            loadFiles();
+            loadTasks();
+        }, 10000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  jpeg2heif:
+    build: .
+    container_name: jpeg2heif
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - /Users/andi/Downloads/testcases:/data
+      - ./db:/data/db
+    environment:
+      - WATCH_DIRS=/data/original
+      - DB_PATH=/data/db/jpeg2heif.db
+      - HTTP_PORT=8080
+      - LOG_LEVEL=info
+      - POLL_INTERVAL=300s
+      - METADATA_STABILITY_DELAY=5s
+      - MAX_WORKERS=4
+      - CONVERT_QUALITY=85
+      - PRESERVE_METADATA=true
+      - MD5_CHUNK_SIZE=8192
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/stats"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
