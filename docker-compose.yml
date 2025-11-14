@@ -20,6 +20,7 @@ services:
       - MAX_WORKERS=4
       - CONVERT_QUALITY=85
       - PRESERVE_METADATA=true
+      - BUILTIN_CONVERTERS=''
       - MD5_CHUNK_SIZE=8192
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/stats"]

@@ -1,0 +1,31 @@
+name: jpeg-to-heic
+description: "Convert JPEG to HEIC with metadata preservation using ImageMagick and exiftool"
+runs-on: shell
+timeout: 120
+
+can_convert:
+  extensions: [".jpg", ".jpeg"]
+
+env:
+  QUALITY: "{{QUALITY}}"
+
+steps:
+  - name: convert-to-heic
+    run: |
+      magick "{{INPUT_FILE}}" -quality {{QUALITY}} "{{TMP_OUTPUT}}"
+    workdir: "{{TMP_DIR}}"
+    timeout: 60
+
+  - name: copy-metadata
+    run: |
+      exiftool -TagsFromFile "{{INPUT_FILE}}" -overwrite_original "{{TMP_OUTPUT}}"
+    timeout: 30
+
+  - name: verify-metadata
+    run: |
+      echo "Verifying metadata preservation..."
+      exiftool -DateTimeOriginal -s -s -s "{{TMP_OUTPUT}}"
+    timeout: 10
+
+outputs:
+  output_file: "{{TMP_OUTPUT}}"

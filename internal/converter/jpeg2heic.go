@@ -16,8 +16,9 @@ import (
 // JPEG2HEICConverter converts JPEG files to HEIC format
 type JPEG2HEICConverter struct{}
 
-func init() {
-	Register(&JPEG2HEICConverter{})
+// NewJPEG2HEICConverter creates a new JPEG2HEIC converter
+func NewJPEG2HEICConverter() *JPEG2HEICConverter {
+	return &JPEG2HEICConverter{}
 }
 
 func (c *JPEG2HEICConverter) Name() string {

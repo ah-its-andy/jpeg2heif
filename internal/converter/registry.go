@@ -3,13 +3,31 @@ package converter
 import (
 	"fmt"
 	"sync"
+
+	"github.com/ah-its-andy/jpeg2heif/internal/db"
 )
 
 var (
-	registry = make(map[string]Converter)
-	mu       sync.RWMutex
-	disabled = make(map[string]bool)
+	registry   = make(map[string]Converter)
+	mu         sync.RWMutex
+	disabled   = make(map[string]bool)
+	database   *db.DB
+	databaseMu sync.RWMutex
 )
+
+// SetDatabase sets the database instance for workflow converter lookup
+func SetDatabase(db *db.DB) {
+	databaseMu.Lock()
+	defer databaseMu.Unlock()
+	database = db
+}
+
+// GetDatabase returns the current database instance
+func GetDatabase() *db.DB {
+	databaseMu.RLock()
+	defer databaseMu.RUnlock()
+	return database
+}
 
 // Register registers a converter in the global registry
 func Register(c Converter) {
@@ -57,12 +75,36 @@ func FindConverter(srcPath string, srcMime string) (Converter, error) {
 	mu.RLock()
 	defer mu.RUnlock()
 
+	// First, try builtin converters
 	for name, c := range registry {
 		if disabled[name] {
 			continue
 		}
 		if c.CanConvert(srcPath, srcMime) {
 			return c, nil
+		}
+	}
+
+	// Then, try workflow converters from database
+	db := GetDatabase()
+	if db != nil {
+		workflows, err := db.ListWorkflows(1000, 0)
+		if err == nil {
+			for _, wf := range workflows {
+				if !wf.Enabled {
+					continue
+				}
+
+				// Create workflow converter on-the-fly
+				conv, err := NewWorkflowConverter(wf, db)
+				if err != nil {
+					continue
+				}
+
+				if conv.CanConvert(srcPath, srcMime) {
+					return conv, nil
+				}
+			}
 		}
 	}
 

@@ -1,0 +1,38 @@
+name: image-to-webp
+description: "Convert various image formats to WebP using script-based validation"
+runs-on: shell
+timeout: 120
+
+can_convert:
+  run: |
+    # Check if file is a supported image format (JPEG, PNG, GIF, TIFF)
+    file_type=$(file -b --mime-type "{{INPUT_FILE}}")
+    case "$file_type" in
+      image/jpeg|image/png|image/gif|image/tiff)
+        exit 0  # Supported
+        ;;
+      *)
+        exit 1  # Not supported
+        ;;
+    esac
+  timeout: 5
+
+env:
+  QUALITY: "{{QUALITY}}"
+
+steps:
+  - name: convert-to-webp
+    run: |
+      cwebp -q {{QUALITY}} "{{INPUT_FILE}}" -o "{{TMP_OUTPUT}}"
+    workdir: "{{TMP_DIR}}"
+    timeout: 60
+
+  - name: verify-output
+    run: |
+      echo "Verifying WebP output..."
+      file "{{TMP_OUTPUT}}"
+      ls -lh "{{TMP_OUTPUT}}"
+    timeout: 10
+
+outputs:
+  output_file: "{{TMP_OUTPUT}}"

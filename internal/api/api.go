@@ -6,10 +6,10 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
-	"github.com/ah-its-andy/jpeg2heif/internal/converter"
 	"github.com/ah-its-andy/jpeg2heif/internal/db"
 	"github.com/ah-its-andy/jpeg2heif/internal/watcher"
 	"github.com/ah-its-andy/jpeg2heif/internal/worker"
@@ -54,11 +54,30 @@ func (s *Server) Start(port int) error {
 	mux.HandleFunc("/api/files", s.handleFiles)
 	mux.HandleFunc("/api/files/", s.handleFileDetail)
 	mux.HandleFunc("/api/tasks", s.handleTasks)
+	mux.HandleFunc("/api/tasks/", s.handleTaskDetail)
 	mux.HandleFunc("/api/stats", s.handleStats)
 	mux.HandleFunc("/api/converters", s.handleConverters)
+	mux.HandleFunc("/api/converters/", s.handleConverterDetail)
 	mux.HandleFunc("/api/rebuild-index", s.handleRebuildIndex)
 	mux.HandleFunc("/api/rebuild-status/", s.handleRebuildStatus)
 	mux.HandleFunc("/api/scan-now", s.handleScanNow)
+
+	// Workflow API routes
+	mux.HandleFunc("/api/workflows", s.handleWorkflows)
+	mux.HandleFunc("/api/workflows/", func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		if strings.Contains(path, "/validate") {
+			s.handleWorkflowValidate(w, r)
+		} else if strings.Contains(path, "/run") {
+			s.handleWorkflowRun(w, r)
+		} else if strings.Contains(path, "/runs/") {
+			s.handleWorkflowRunDetail(w, r)
+		} else if strings.HasSuffix(path, "/runs") {
+			s.handleWorkflowRuns(w, r)
+		} else {
+			s.handleWorkflowDetail(w, r)
+		}
+	})
 
 	// Static files
 	mux.Handle("/", http.FileServer(http.Dir("static")))
@@ -163,6 +182,30 @@ func (s *Server) handleTasks(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, tasks)
 }
 
+// handleTaskDetail handles GET /api/tasks/{id}
+func (s *Server) handleTaskDetail(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Extract ID from path
+	id := r.URL.Path[len("/api/tasks/"):]
+	taskID, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid task ID", http.StatusBadRequest)
+		return
+	}
+
+	task, err := s.db.GetTaskByID(taskID)
+	if err != nil {
+		http.Error(w, "Task not found", http.StatusNotFound)
+		return
+	}
+
+	respondJSON(w, task)
+}
+
 // handleStats handles GET /api/stats
 func (s *Server) handleStats(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -177,17 +220,6 @@ func (s *Server) handleStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, stats)
-}
-
-// handleConverters handles GET /api/converters
-func (s *Server) handleConverters(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	converters := converter.ListInfo()
-	respondJSON(w, converters)
 }
 
 // handleRebuildIndex handles POST /api/rebuild-index

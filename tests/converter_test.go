@@ -10,6 +10,11 @@ import (
 	"github.com/ah-its-andy/jpeg2heif/internal/converter"
 )
 
+func init() {
+	// Register converters for testing
+	converter.Register(converter.NewJPEG2HEICConverter())
+}
+
 func TestConverterRegistry(t *testing.T) {
 	// Test that converters are registered
 	converters := converter.List()

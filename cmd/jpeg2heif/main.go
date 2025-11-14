@@ -8,13 +8,11 @@ import (
 	"syscall"
 
 	"github.com/ah-its-andy/jpeg2heif/internal/api"
+	"github.com/ah-its-andy/jpeg2heif/internal/converter"
 	"github.com/ah-its-andy/jpeg2heif/internal/db"
 	"github.com/ah-its-andy/jpeg2heif/internal/util"
 	"github.com/ah-its-andy/jpeg2heif/internal/watcher"
 	"github.com/ah-its-andy/jpeg2heif/internal/worker"
-
-	// Import converters to trigger registration
-	_ "github.com/ah-its-andy/jpeg2heif/internal/converter"
 )
 
 func main() {
@@ -33,6 +31,9 @@ func main() {
 	// Check external tools
 	checkExternalTools()
 
+	// Register builtin converters based on environment variable
+	converter.RegisterBuiltinConverters()
+
 	// Initialize database
 	database, err := db.New(cfg.DBPath)
 	if err != nil {
@@ -40,6 +41,11 @@ func main() {
 	}
 	defer database.Close()
 	log.Println("Database initialized")
+
+	// Load workflow converters from database
+	if err := converter.LoadWorkflowConverters(database); err != nil {
+		log.Printf("Warning: failed to load workflow converters: %v", err)
+	}
 
 	// Create watcher
 	w, err := watcher.New(cfg.WatchDirs, cfg.MetadataStabilityDelay, cfg.PollInterval)
